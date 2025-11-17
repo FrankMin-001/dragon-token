@@ -1,0 +1,191 @@
+# DragonToken 单体应用配置示例
+# 适用于单体应用部署，优化性能并禁用分布式特性
+
+spring:
+  application:
+    name: dragon-token-monolithic-app
+  profiles:
+    active: monolithic
+  
+  # Redis 单机配置（简化版）
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    password: ${REDIS_PASSWORD:}
+    timeout: 3000ms
+    
+    # 连接池配置（单体应用优化）
+    lettuce:
+      pool:
+        max-active: 8        # 单体应用减少连接数
+        max-idle: 4
+        min-idle: 2
+        max-wait: 1000ms
+      shutdown-timeout: 100ms
+  
+  # Session 配置（单体优化）
+  session:
+    store-type: redis
+    redis:
+      flush-mode: on_save
+      namespace: dragon:session:mono    # 单体应用命名空间
+    timeout: 7200s
+
+# DragonToken 单体应用配置
+dragon:
+  token:
+    # 基础配置
+    name: DRAGON-TOKEN-MONO
+    strategy-type: SESSION
+    retention-time: 7200
+    public-key: ${JWT_PUBLIC_KEY:Xw2p4a8F7C1mzQ9vKb3Rt6SyN0jH5LuE1}
+    exclude-paths: /login,/public/**,/actuator/**,/swagger-ui/**,/v3/api-docs
+    
+    # 缓存预热配置（单体优化）
+    cache-warmup:
+      # 启用缓存预热
+      enabled: true
+      # 单体应用更短的延迟时间
+      delay-millis: 3000
+      # 启用自动预热
+      auto-warmup-on-startup: true
+      # 单体应用更短的超时时间
+      timeout-millis: 30000
+      
+      # 分布式配置（单体应用禁用）
+      distributed:
+        # 关键：禁用分布式模式
+        enabled: false
+        # 以下配置在单体环境中不生效，但保留以便将来升级
+        lock-timeout: 60
+        heartbeat-interval: 30
+        service-timeout: 90
+        version-check-interval: 60
+        event-channel: dragon:token:mono:events
+    
+    # Session 热刷新配置（单体优化）
+    session-hot-refresh:
+      enabled: true
+      # 单体环境更短的防抖时间
+      debounce-delay-millis: 1000
+      # 适中的批处理大小
+      batch-size: 50
+      batch-interval-millis: 3000
+      # 本地缓存配置（单体应用优化）
+      local-cache-size: 1000
+      local-cache-expire-millis: 300000  # 5分钟
+      # 智能刷新阈值
+      smart-refresh-threshold-seconds: 1800  # 30分钟
+      # 单体应用减少线程池大小
+      async-thread-pool-size: 2
+      # 性能监控
+      performance-monitor-enabled: true
+    
+    # 数据一致性配置（单体应用禁用）
+    consistency:
+      # 关键：单体应用禁用分布式一致性
+      enabled: false
+      # 以下配置在单体环境中不生效
+      version-conflict-detection: false
+      auto-conflict-resolution: false
+      version-cache-expire: 3600
+      conflict-resolution-strategy: "LATEST_WINS"
+      event-notification:
+        enabled: false
+        channels: []
+
+# 日志配置（单体应用优化）
+logging:
+  level:
+    com.smalldragon.yml: INFO
+    # 禁用分布式相关的调试日志
+    com.smalldragon.yml.service.DistributedCacheWarmupService: WARN
+    com.smalldragon.yml.service.MicroserviceConfigurationService: WARN
+    com.smalldragon.yml.service.CacheConsistencyService: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+---
+# 开发环境配置
+spring:
+  profiles: dev
+  redis:
+    host: localhost
+    port: 6379
+    password: 
+
+dragon:
+  token:
+    # 开发环境可以启用更多调试信息
+    session-hot-refresh:
+      performance-monitor-enabled: true
+
+logging:
+  level:
+    com.smalldragon.yml: DEBUG
+
+---
+# 生产环境配置
+spring:
+  profiles: prod
+  redis:
+    host: ${REDIS_HOST:prod-redis.example.com}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD}
+    
+dragon:
+  token:
+    # 生产环境优化配置
+    cache-warmup:
+      delay-millis: 5000      # 生产环境稍长的延迟
+      timeout-millis: 60000   # 更长的超时时间
+    session-hot-refresh:
+      debounce-delay-millis: 2000
+      batch-size: 100
+      local-cache-size: 2000
+      performance-monitor-enabled: false  # 生产环境关闭性能监控
+
+logging:
+  level:
+    com.smalldragon.yml: WARN
+    root: INFO
+
+# 配置说明和最佳实践
+# 
+# 1. 单体应用关键配置：
+#    - dragon.token.cache-warmup.distributed.enabled: false
+#    - dragon.token.consistency.enabled: false
+#    - 这两个配置确保禁用所有分布式特性
+#
+# 2. 性能优化建议：
+#    - 减少Redis连接池大小（max-active: 8）
+#    - 缩短缓存预热延迟时间（delay-millis: 3000）
+#    - 减少异步线程池大小（async-thread-pool-size: 2）
+#    - 适中的本地缓存大小（local-cache-size: 1000）
+#
+# 3. 内存优化：
+#    - 单体应用通常内存有限，建议适当调整缓存大小
+#    - local-cache-expire-millis 设置为5分钟，避免内存泄漏
+#
+# 4. 升级路径：
+#    - 如需升级到微服务架构，只需修改 distributed.enabled: true
+#    - 其他分布式配置已预留，升级时可直接调整参数
+#
+# 5. 监控建议：
+#    - 开发环境启用 performance-monitor-enabled: true
+#    - 生产环境关闭以减少性能开销
+#
+# 6. 日志配置：
+#    - 单体环境禁用分布式服务的调试日志
+#    - 保留核心功能的INFO级别日志用于问题排查

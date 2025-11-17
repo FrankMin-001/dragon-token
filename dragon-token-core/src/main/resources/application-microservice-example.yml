@@ -1,0 +1,169 @@
+# DragonToken 微服务环境配置示例
+# 适用于微服务集群部署，支持分布式缓存预热和数据一致性
+
+spring:
+  application:
+    name: dragon-token-service
+  profiles:
+    active: microservice
+  
+  # Redis 集群配置
+  redis:
+    # 单机模式
+    host: redis-cluster.example.com
+    port: 6379
+    database: 0
+    password: ${REDIS_PASSWORD:your-redis-password}
+    timeout: 5000ms
+    
+    # 集群模式配置（可选）
+    # cluster:
+    #   nodes:
+    #     - redis-node1.example.com:6379
+    #     - redis-node2.example.com:6379
+    #     - redis-node3.example.com:6379
+    #   max-redirects: 3
+    
+    # 连接池配置
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 5
+        max-wait: 2000ms
+      shutdown-timeout: 100ms
+  
+  # Session 配置
+  session:
+    store-type: redis
+    redis:
+      flush-mode: on_save
+      namespace: dragon:session:cluster
+    timeout: 7200s
+
+# 服务发现配置（如果使用 Eureka/Consul 等）
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+# DragonToken 微服务配置
+dragon:
+  token:
+    # 基础配置
+    name: DRAGON-TOKEN-CLUSTER
+    strategy-type: SESSION
+    retention-time: 7200
+    public-key: ${JWT_PUBLIC_KEY:Xw2p4a8F7C1mzQ9vKb3Rt6SyN0jH5LuE1}
+    exclude-paths: /login,/public/**,/actuator/**,/swagger-ui/**,/v3/api-docs
+    
+    # 分布式缓存预热配置
+    cache-warmup:
+      # 启用分布式缓存预热
+      enabled: true
+      # 预热延迟时间（微服务环境建议更长）
+      delay-millis: 15000
+      # 启用自动预热
+      auto-warmup-on-startup: true
+      # 预热超时时间
+      timeout-millis: 120000
+      
+      # 微服务特有配置
+      distributed:
+        # 启用分布式模式
+        enabled: true
+        # 分布式锁超时时间（秒）
+        lock-timeout: 300
+        # 心跳间隔（秒）
+        heartbeat-interval: 30
+        # 服务超时时间（秒）
+        service-timeout: 90
+        # 版本检查间隔（秒）
+        version-check-interval: 60
+        # 事件通知频道
+        event-channel: dragon:token:cluster:events
+    
+    # Session 热刷新配置（微服务优化）
+    session-hot-refresh:
+      enabled: true
+      # 微服务环境建议更长的防抖时间
+      debounce-delay-millis: 3000
+      # 增大批处理大小以提高效率
+      batch-size: 100
+      batch-interval-millis: 5000
+      # 本地缓存配置
+      local-cache-size: 2000
+      local-cache-expire-millis: 600000  # 10分钟
+      # 智能刷新阈值（微服务环境建议更保守）
+      smart-refresh-threshold-seconds: 3600  # 1小时
+      # 异步线程池大小
+      async-thread-pool-size: 4
+      # 性能监控
+      performance-monitor-enabled: true
+      performance-report-interval-millis: 600000  # 10分钟
+    
+    # 数据一致性配置
+    consistency:
+      # 启用数据一致性保障
+      enabled: true
+      # 版本冲突检测
+      version-conflict-detection: true
+      # 自动冲突解决
+      auto-conflict-resolution: true
+      # 事件通知超时时间（毫秒）
+      event-notification-timeout: 5000
+      # 本地版本缓存大小
+      local-version-cache-size: 1000
+      # 版本缓存过期时间（秒）
+      version-cache-expire: 3600
+
+# 监控和健康检查
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,caches
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# 日志配置
+logging:
+  level:
+    com.smalldragon.yml.service.DistributedCacheWarmupService: INFO
+    com.smalldragon.yml.service.CacheConsistencyService: INFO
+    com.smalldragon.yml.service.SessionPerformanceService: INFO
+    com.smalldragon.yml.utils.SessionHotRefreshUtil: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+
+# 微服务环境性能优化建议：
+# 
+# 1. 缓存预热策略：
+#    - delay-millis: 根据服务启动顺序调整，核心服务可以设置更短的延迟
+#    - lock-timeout: 根据预热数据量调整，数据量大的服务需要更长的锁定时间
+#    - heartbeat-interval: 根据网络稳定性调整，不稳定网络建议缩短间隔
+#
+# 2. Session 热刷新优化：
+#    - debounce-delay-millis: 高并发服务建议设置更长的防抖时间
+#    - batch-size: 根据Redis性能和网络带宽调整
+#    - local-cache-size: 根据服务内存和用户数量调整
+#
+# 3. 数据一致性配置：
+#    - version-conflict-detection: 生产环境建议启用
+#    - auto-conflict-resolution: 根据业务需求决定是否启用自动解决
+#
+# 4. 集群部署注意事项：
+#    - 确保所有实例使用相同的Redis集群
+#    - 配置合适的服务发现机制
+#    - 监控缓存预热和一致性状态
+#    - 设置适当的健康检查和告警

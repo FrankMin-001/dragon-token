@@ -1,0 +1,61 @@
+# DragonToken Session热刷新配置示例
+# 此文件展示了如何配置Session热刷新功能的各项参数
+
+dragon:
+  token:
+    # 基础配置
+    name: DRAGON-TOKEN
+    strategy-type: SESSION
+    retention-time: 7200  # Session保留时间（秒）
+    
+    # Session热刷新配置
+    session-hot-refresh:
+      # 是否启用Session热刷新功能
+      enabled: true
+      
+      # 防抖延迟时间（毫秒）
+      # 防止同一个Session在短时间内频繁刷新
+      debounce-delay-millis: 1000
+      
+      # 批处理配置
+      batch-size: 50                    # 批处理大小
+      batch-interval-millis: 2000       # 批处理间隔时间（毫秒）
+      
+      # 本地缓存配置
+      local-cache-size: 1000            # 本地缓存大小
+      local-cache-expire-millis: 300000 # 本地缓存过期时间（毫秒，5分钟）
+      
+      # 智能刷新配置
+      # Session剩余时间低于此值时才进行刷新（秒）
+      smart-refresh-threshold-seconds: 1800  # 30分钟
+      
+      # 异步处理配置
+      async-thread-pool-size: 2         # 异步处理线程池大小
+      
+      # 性能监控配置
+      performance-monitor-enabled: true # 是否启用性能监控
+      performance-report-interval-millis: 300000  # 性能报告间隔（毫秒，5分钟）
+    
+    # Redis配置（SESSION模式必需）
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      password: # 如果有密码请填写
+
+# Spring Session配置
+spring:
+  session:
+    store-type: redis
+    redis:
+      flush-mode: on_save
+      namespace: dragon:session
+    timeout: 7200s  # 与dragon.token.retention-time保持一致
+
+# 性能优化建议：
+# 1. debounce-delay-millis: 根据用户操作频率调整，一般1-5秒
+# 2. batch-size: 根据系统负载调整，建议20-100
+# 3. batch-interval-millis: 根据实时性要求调整，建议1-5秒
+# 4. smart-refresh-threshold-seconds: 建议设置为总时间的1/4到1/2
+# 5. local-cache-size: 根据并发用户数调整
+# 6. async-thread-pool-size: 根据CPU核心数调整，建议2-4个线程

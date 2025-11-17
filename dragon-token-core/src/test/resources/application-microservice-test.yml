@@ -1,0 +1,126 @@
+# 微服务环境集成测试配置
+spring:
+  # Redis配置 - 使用嵌入式Redis进行测试
+  redis:
+    host: localhost
+    port: 6379
+    database: 15  # 使用独立的测试数据库
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 5
+        max-wait: 2000ms
+    
+  # Session配置
+  session:
+    store-type: redis
+    redis:
+      namespace: "dragon-token:test:session"
+      flush-mode: on_save
+    timeout: 1800s
+
+  # 应用配置
+  application:
+    name: dragon-token-test
+
+# DragonToken配置
+dragon-token:
+  # 模式配置
+  mode: session
+  
+  # 缓存预热配置
+  cache-warmup:
+    enabled: true
+    delay-millis: 1000
+    auto-warmup-on-startup: true
+    timeout-millis: 30000
+    
+    # 分布式配置
+    distributed:
+      enabled: true
+      lock-timeout: 10000
+      heartbeat-interval: 5000
+      service-timeout: 15000
+      version-check-interval: 10000
+      event-channel: "cache:events:test"
+  
+  # Session热刷新配置
+  session-hot-refresh:
+    enabled: true
+    debounce-time: 500
+    batch-size: 100
+    cache-size: 1000
+    cache-expire: 300
+    refresh-threshold: 0.8
+    
+    # 性能优化配置
+    performance:
+      async-processing: true
+      batch-processing: true
+      cache-cleaning: true
+      queue-capacity: 5000
+      thread-pool-size: 10
+  
+  # 数据一致性配置
+  consistency:
+    enabled: true
+    version-conflict-detection: true
+    auto-conflict-resolution: true
+    event-notification-timeout: 5000
+    local-version-cache-size: 1000
+    version-cache-expire: 3600
+
+  # Redis配置
+  redis:
+    enabled: true
+    key-prefix: "dragon-token:test"
+    key-timeout: 1800
+
+# 服务发现配置（测试环境使用简单配置）
+eureka:
+  client:
+    enabled: false  # 测试环境禁用Eureka
+    
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,cache-warmup,cache-management
+  endpoint:
+    health:
+      show-details: always
+    cache-warmup:
+      enabled: true
+    cache-management:
+      enabled: true
+
+# 日志配置
+logging:
+  level:
+    com.smalldragon.yml: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.springframework.session: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] - %msg%n"
+
+# 测试专用配置
+test:
+  # 并发测试配置
+  concurrency:
+    thread-count: 10
+    operation-count: 1000
+    timeout-seconds: 30
+  
+  # 性能测试配置
+  performance:
+    warmup-iterations: 100
+    test-iterations: 1000
+    max-response-time: 100
+  
+  # 内存测试配置
+  memory:
+    max-heap-increase: 50MB
+    gc-threshold: 0.8

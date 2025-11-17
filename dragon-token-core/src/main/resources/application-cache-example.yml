@@ -1,0 +1,33 @@
+# DragonToken 缓存预热配置示例
+dragon:
+  token:
+    # 基础配置
+    name: DRAGON-TOKEN
+    strategy-type: JWT
+    retention-time: 7200
+    public-key: your-public-key-here
+    exclude-paths: /login,/public/**,/swagger-ui/**,/v3/api-docs
+    
+    # Redis配置
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      password: your-redis-password
+    
+    # 缓存预热配置
+    cache-warmup:
+      # 是否启用缓存预热
+      enabled: true
+      # 预热延迟时间（毫秒），应用启动后延迟多久开始预热
+      delay-millis: 5000
+      # 是否在应用启动时自动预热
+      auto-warmup-on-startup: true
+      # 预热超时时间（毫秒）
+      timeout-millis: 30000
+
+# 日志配置
+logging:
+  level:
+    com.smalldragon.yml.service.CacheWarmupService: INFO
+    com.smalldragon.yml.controller.CacheManagementController: INFO

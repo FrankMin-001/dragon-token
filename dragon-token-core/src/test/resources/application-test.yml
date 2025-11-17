@@ -1,0 +1,91 @@
+# 测试环境配置
+spring:
+  profiles:
+    active: test
+  main:
+    banner-mode: off
+
+# SA-TOKEN 测试配置
+sa-token:
+  # 令牌名称
+  token-name: DRAGON_TOKEN
+  # 令牌有效期（单位：秒）
+  timeout: 7200
+  # 临时令牌有效期（单位：秒）
+  activity-timeout: 1800
+  # 是否允许同一账号并发登录
+  is-concurrent: true
+  # 在多人登录同一账号时，是否共用一个token
+  is-share: false
+  # 是否尝试从请求体读取token
+  is-read-body: true
+  # 是否尝试从header读取token
+  is-read-header: true
+  # 是否尝试从cookie读取token
+  is-read-cookie: true
+  # 是否在登录后将token返回到前端
+  is-return-token: true
+
+# Dragon Token 配置
+dragon:
+  token:
+    # 认证策略类型
+    strategy-type: JWT_SIMPLE
+    # 令牌保留时间（秒）
+    retention-time: 3600
+    # 本地缓存时间（秒）
+    local-cache-time: 1800
+    # 临时缓存时间（秒）
+    temp-cache-time: 900
+    # JWT 公钥（Base64编码）
+    public-key: "dGVzdC1wdWJsaWMta2V5LWZvci10ZXN0aW5nLXB1cnBvc2VzLW9ubHk="
+    # 令牌名称
+    name: "DRAGON_TOKEN"
+
+# 日志配置
+logging:
+  level:
+    com.smalldragon.yml: DEBUG
+    org.springframework.security: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# 测试数据库配置（如果需要）
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+# Redis 测试配置（使用嵌入式Redis）
+redis:
+  host: localhost
+  port: 6379
+  password: 
+  database: 0
+  timeout: 2000ms
+  lettuce:
+    pool:
+      max-active: 8
+      max-idle: 8
+      min-idle: 0
+      max-wait: -1ms
+
+# 缓存配置
+cache:
+  type: redis
+  redis:
+    time-to-live: 3600000
+    cache-null-values: false
+
+# Web 配置
+server:
+  port: 8081
+  servlet:
+    context-path: /test

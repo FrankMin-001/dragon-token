@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: dragon-token-core
+  session:
+    store-type: redis
+    timeout: 7200
+  # 用来存储session
+  redis:
+    host: 123.207.11.78
+    port: 30379
+    database: 0
+    password:
+
+# Dragon Token 配置
+dragon:
+  token:
+    name: DRAGON_TOKEN
+    strategy-type: SESSION
+    retention-time: 7200
+    public-key: Xw2p4a8F7C1mzQ9vKb3Rt6SyN0jH5LuE1
+    exclude-paths:
+      - "/login"
+      - "/public/*"
