@@ -1,0 +1,118 @@
+# JDK1.8 高性能配置示例
+# 使用CompletableFuture和优化线程池模拟虚拟线程的效果
+
+server:
+  port: 8080
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 10
+    accept-count: 100
+
+# DragonToken 高性能配置
+dragon:
+  token:
+    # 基础配置
+    name: DRAGON_TOKEN
+    strategy-type: SESSION
+    retention-time: 7200
+    enabled: true
+
+    # 启用高性能模式（JDK1.8）
+    high-performance:
+      enabled: true
+
+    # Redis配置（针对高并发优化）
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 2000
+      lettuce:
+        pool:
+          max-active: 200
+          max-idle: 50
+          min-idle: 10
+          max-wait: 3000ms
+        shutdown-timeout: 100ms
+
+    # 缓存预热配置
+    cache-warmup:
+      enabled: true
+      auto-warmup-on-startup: true
+      delay-millis: 2000
+      timeout-millis: 30000
+      batch-size: 50
+
+    # 多租户配置
+    multi-tenant:
+      enabled: true
+
+    # 排除路径
+    exclude-paths:
+      - "/login"
+      - "/register"
+      - "/public/**"
+      - "/actuator/**"
+
+# Spring Boot配置（JDK1.8优化）
+spring:
+  application:
+    name: dragon-token-high-performance
+
+  # Redis连接配置
+  data:
+    redis:
+      host: ${dragon.token.redis.host}
+      port: ${dragon.token.redis.port}
+      database: ${dragon.token.redis.database}
+      timeout: ${dragon.token.redis.timeout}ms
+      lettuce:
+        pool:
+          max-active: ${dragon.token.redis.lettuce.pool.max-active}
+          max-idle: ${dragon.token.redis.lettuce.pool.max-idle}
+          min-idle: ${dragon.token.redis.lettuce.pool.min-idle}
+          max-wait: ${dragon.token.redis.lettuce.pool.max-wait}
+        shutdown-timeout: ${dragon.token.redis.lettuce.shutdown-timeout}
+
+  # 异步任务配置
+  task:
+    execution:
+      pool:
+        core-size: 8
+        max-size: 32
+        queue-capacity: 1000
+        keep-alive: 60s
+    scheduling:
+      pool:
+        size: 4
+
+# 日志配置（性能监控）
+logging:
+  level:
+    com.smalldragon.yml: INFO
+    org.springframework.data.redis: WARN
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      jmx:
+        enabled: true
+
+# JVM 参数优化（建议在启动时设置）
+# -Xms512m -Xmx2g
+# -XX:+UseG1GC
+# -XX:MaxGCPauseMillis=200
+# -XX:+UseStringDeduplication
+# -Djava.awt.headless=true

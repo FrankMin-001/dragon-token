@@ -658,9 +658,54 @@ public class DragonTokenProperties {
      */
     public String getRedisConnectionSummary() {
         if (redis.isComplete()) {
-            return String.format("%s:%d/%d", redis.getHost(), redis.getPort(), 
+            return String.format("%s:%d/%d", redis.getHost(), redis.getPort(),
                 redis.getDatabase() != null ? redis.getDatabase() : 0);
         }
         return "未配置";
     }
+
+    /**
+     * 虚拟线程配置
+     */
+    private VirtualThread virtualThread = new VirtualThread();
+
+    /**
+     * 虚拟线程配置类
+     */
+    public static class VirtualThread {
+        /**
+         * 是否启用虚拟线程（需要JDK21+）
+         */
+        private boolean enabled = false;
+
+        /**
+         * 虚拟线程并发预热
+         */
+        private boolean preWarmEnabled = true;
+
+        /**
+         * 预热的批次大小
+         */
+        private int preWarmBatchSize = 100;
+
+        /**
+         * 异步缓存操作超时时间（秒）
+         */
+        private int asyncTimeout = 5;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public boolean isPreWarmEnabled() { return preWarmEnabled; }
+        public void setPreWarmEnabled(boolean preWarmEnabled) { this.preWarmEnabled = preWarmEnabled; }
+
+        public int getPreWarmBatchSize() { return preWarmBatchSize; }
+        public void setPreWarmBatchSize(int preWarmBatchSize) { this.preWarmBatchSize = preWarmBatchSize; }
+
+        public int getAsyncTimeout() { return asyncTimeout; }
+        public void setAsyncTimeout(int asyncTimeout) { this.asyncTimeout = asyncTimeout; }
+    }
+
+    public VirtualThread getVirtualThread() { return virtualThread; }
+    public void setVirtualThread(VirtualThread virtualThread) { this.virtualThread = virtualThread; }
 }

@@ -1,0 +1,94 @@
+# JDK21 + 虚拟线程高性能配置示例
+
+# 启用虚拟线程（需要JDK21+）
+dragon:
+  token:
+    # 基础配置
+    name: DRAGON_TOKEN
+    strategy-type: SESSION
+    retention-time: 7200
+    enabled: true
+
+    # 虚拟线程配置
+    virtual-thread:
+      enabled: true                      # 启用虚拟线程
+      pre-warm-enabled: true              # 启用并发预热
+      pre-warm-batch-size: 200           # 预热批次大小
+      async-timeout: 10                   # 异步操作超时时间（秒）
+
+    # Redis配置（针对虚拟线程优化）
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 1000
+      lettuce:
+        pool:
+          max-active: 100
+          max-idle: 20
+          min-idle: 5
+        shutdown-timeout: 100ms
+
+    # 缓存预热配置
+    cache-warmup:
+      enabled: true
+      auto-warmup-on-startup: true
+      delay-millis: 3000
+      timeout-millis: 60000
+
+    # 多租户配置
+    multi-tenant:
+      enabled: true
+
+    # 排除路径
+    exclude-paths:
+      - "/login"
+      - "/register"
+      - "/public/**"
+      - "/actuator/**"
+
+# Spring Boot配置（JDK21优化）
+spring:
+  application:
+    name: dragon-token-virtual-thread-demo
+
+  # 启用虚拟线程（Spring Boot 3.2+）
+  threads:
+    virtual:
+      enabled: true
+
+  # Redis连接配置
+  data:
+    redis:
+      host: ${dragon.token.redis.host}
+      port: ${dragon.token.redis.port}
+      database: ${dragon.token.redis.database}
+      timeout: ${dragon.token.redis.timeout}ms
+      lettuce:
+        pool:
+          max-active: ${dragon.token.redis.lettuce.pool.max-active}
+          max-idle: ${dragon.token.redis.lettuce.pool.max-idle}
+          min-idle: ${dragon.token.redis.lettuce.pool.min-idle}
+        shutdown-timeout: ${dragon.token.redis.lettuce.shutdown-timeout}
+
+# 日志配置
+logging:
+  level:
+    com.smalldragon.yml: DEBUG
+    org.springframework.data.redis: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
