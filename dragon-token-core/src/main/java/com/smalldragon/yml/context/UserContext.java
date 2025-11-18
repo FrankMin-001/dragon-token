@@ -16,7 +16,6 @@ public class UserContext {
     private String clientIp;
     private Map<String, Object> externalData;
     private String sessionId;
-
     private String strategyType;
 
     public String getUserId() {
@@ -90,4 +89,7 @@ public class UserContext {
     public void setStrategyType(String strategyType) {
         this.strategyType = strategyType;
     }
+
+
+
 }

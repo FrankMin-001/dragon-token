@@ -54,7 +54,7 @@ public class DragonUtils {
             return false;
         }
 
-        List<String> userPermissions = stpInterface.getPermissionList(userContext.getUserId());
+        List<String> userPermissions = stpInterface.getPermissionList(userContext.getTenantId(), userContext.getUserId());
         return checkPermissions(userPermissions, permissions, mode);
     }
 
@@ -86,7 +86,7 @@ public class DragonUtils {
             return false;
         }
 
-        List<String> userRoles = stpInterface.getRoleList(userContext.getUserId());
+        List<String> userRoles = stpInterface.getRoleList(userContext.getTenantId(), userContext.getUserId());
         return checkPermissions(userRoles, roles, mode);
     }
 
@@ -155,7 +155,7 @@ public class DragonUtils {
             logger.warn("用户上下文为空，无法获取权限列表");
             return null;
         }
-        return stpInterface.getPermissionList(userContext.getUserId());
+        return stpInterface.getPermissionList(userContext.getTenantId(), userContext.getUserId());
     }
 
     /**
@@ -169,17 +169,27 @@ public class DragonUtils {
             logger.warn("用户上下文为空，无法获取角色列表");
             return null;
         }
-        return stpInterface.getRoleList(userContext.getUserId());
+        return stpInterface.getRoleList(userContext.getTenantId(), userContext.getUserId());
     }
 
     /**
      * 获取当前用户ID
-     * 
+     *
      * @return 当前用户ID
      */
     public String getCurrentUserId() {
         UserContext userContext = DragonContextHolder.getContext();
         return userContext != null ? userContext.getUserId() : null;
+    }
+
+    /**
+     * 获取当前用户的租户ID
+     *
+     * @return 当前用户的租户ID
+     */
+    public String getCurrentTenantId() {
+        UserContext userContext = DragonContextHolder.getContext();
+        return userContext != null ? userContext.getTenantId() : null;
     }
 
     /**

@@ -160,8 +160,9 @@ public class AuthInterceptor implements HandlerInterceptor {
                 return true;
             }
 
-            // 该用户本身所拥有的权限集合
-            List<String> userPermissions = stpInterface.getPermissionList(DragonContextHolder.getContext().getUserId());
+            // 该用户本身所拥有的权限集合（支持租户隔离）
+            UserContext currentUser = DragonContextHolder.getContext();
+            List<String> userPermissions = stpInterface.getPermissionList(currentUser.getTenantId(), currentUser.getUserId());
 
             return checkPermissions(userPermissions, permissions, annotation.mode());
         }
@@ -186,8 +187,9 @@ public class AuthInterceptor implements HandlerInterceptor {
                 return true;
             }
 
-            // 该用户本身所拥有的角色集合
-            List<String> userRoles = stpInterface.getRoleList(DragonContextHolder.getContext().getUserId());
+            // 该用户本身所拥有的角色集合（支持租户隔离）
+            UserContext currentUser = DragonContextHolder.getContext();
+            List<String> userRoles = stpInterface.getRoleList(currentUser.getTenantId(), currentUser.getUserId());
 
             return checkPermissions(userRoles, roles, annotation.mode());
         }
@@ -233,19 +235,30 @@ public class AuthInterceptor implements HandlerInterceptor {
     private void getContextByJWT(String jwtToken) {
         String userId = tokenManager.getUserId(jwtToken);
 
-        // 从Redis中获取完整的用户信息
-        tokenManager.getUserInfoById(userId);
-        Object cachedUserInfo = redisTemplate.opsForHash().get(CacheKeyConstants.USER_CACHE_KEY, userId);
-        if (cachedUserInfo != null) {
+        // 从Redis中获取完整的用户信息，支持租户隔离
+        // 先尝试获取租户隔离的用户信息，如果没有再尝试传统方式
+        UserContext userContext = tokenManager.getUserInfoById(userId); // 向后兼容
+        if (userContext == null) {
+            // 尝试传统Hash存储方式
+            Object cachedUserInfo = redisTemplate.opsForHash().get(CacheKeyConstants.USER_CACHE_KEY, userId);
+            if (cachedUserInfo != null) {
+                userContext = JSONObject.parseObject(cachedUserInfo.toString(), UserContext.class);
+            }
+        }
+
+        if (userContext != null) {
             // 如果Redis中有缓存，直接使用缓存的数据
-            UserContext userContext = JSONObject.parseObject(cachedUserInfo.toString(), UserContext.class);
+            userContext.setToken(jwtToken); // 确保token是最新的
             DragonContextHolder.setContext(userContext);
+            logger.debug("Loaded user context from cache: userId={}, tenantId={}",
+                userContext.getUserId(), userContext.getTenantId());
         } else {
             // 如果Redis中没有缓存，创建基础用户上下文
-            UserContext userContext = new UserContext();
+            userContext = new UserContext();
             userContext.setUserId(userId);
             userContext.setToken(jwtToken);
             DragonContextHolder.setContext(userContext);
+            logger.debug("Created basic user context: userId={}", userId);
         }
     }
 

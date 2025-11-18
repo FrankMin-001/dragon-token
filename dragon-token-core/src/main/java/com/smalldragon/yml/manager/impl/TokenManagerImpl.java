@@ -83,11 +83,57 @@ public class TokenManagerImpl implements TokenManager {
 
     @Override
     public UserContext getUserInfoById(String userId) {
-        Object cachedUserInfo = redisTemplate.opsForHash().get(CacheKeyConstants.USER_CACHE_KEY, userId);
-        if (cachedUserInfo != null) {
-           return JSONObject.parseObject((String) cachedUserInfo,UserContext.class);
+        return getUserInfoById(null, userId);
+    }
+
+    @Override
+    public UserContext getUserInfoById(String tenantId, String userId) {
+        String cacheKey;
+        if (StringUtils.hasText(tenantId)) {
+            // 使用租户隔离的缓存键
+            cacheKey = CacheKeyConstants.buildUserCacheKey(tenantId, userId);
+            Object cachedUserInfo = redisTemplate.opsForValue().get(cacheKey);
+            if (cachedUserInfo != null) {
+                return JSONObject.parseObject(cachedUserInfo.toString(), UserContext.class);
+            }
+        } else {
+            // 向后兼容：使用传统的Hash存储方式
+            Object cachedUserInfo = redisTemplate.opsForHash().get(CacheKeyConstants.USER_CACHE_KEY, userId);
+            if (cachedUserInfo != null) {
+                return JSONObject.parseObject((String) cachedUserInfo, UserContext.class);
+            }
         }
         return null;
+    }
+
+    /**
+     * 缓存用户信息（支持租户隔离）
+     * @param userContext 用户上下文
+     */
+    public void cacheUserInfo(UserContext userContext) {
+        if (userContext == null || !StringUtils.hasText(userContext.getUserId())) {
+            logger.warn("用户上下文为空或用户ID为空，无法缓存");
+            return;
+        }
+
+        try {
+            if (StringUtils.hasText(userContext.getTenantId())) {
+                // 使用租户隔离的缓存键
+                String cacheKey = CacheKeyConstants.buildUserCacheKey(userContext.getTenantId(), userContext.getUserId());
+                redisTemplate.opsForValue().set(cacheKey, JSON.toJSONString(userContext),
+                    dragonTokenProperties.getRetentionTime(), TimeUnit.SECONDS);
+                logger.debug("Cached user info with tenant isolation: tenantId={}, userId={}",
+                    userContext.getTenantId(), userContext.getUserId());
+            } else {
+                // 向后兼容：使用传统的Hash存储方式
+                redisTemplate.opsForHash().put(CacheKeyConstants.USER_CACHE_KEY, userContext.getUserId(),
+                    JSON.toJSONString(userContext));
+                redisTemplate.expire(CacheKeyConstants.USER_CACHE_KEY, dragonTokenProperties.getRetentionTime(), TimeUnit.SECONDS);
+                logger.debug("Cached user info with legacy method: userId={}", userContext.getUserId());
+            }
+        } catch (Exception e) {
+            logger.error("Error caching user info: {}", e.getMessage(), e);
+        }
     }
 
     @Override

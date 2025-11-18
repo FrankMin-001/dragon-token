@@ -23,6 +23,11 @@ public final class CacheKeyConstants {
     public static final String PROJECT_PREFIX = "dragon-token";
 
     /**
+     * 租户相关键前缀
+     */
+    public static final String TENANT_PREFIX = PROJECT_PREFIX + KEY_SEPARATOR + "tenant";
+
+    /**
      * JWT相关键前缀
      */
     public static final String JWT_PREFIX = PROJECT_PREFIX + KEY_SEPARATOR + "jwt";
@@ -55,32 +60,32 @@ public final class CacheKeyConstants {
     public static final String STATELESS_BLACKLIST_KEY = BLACKLIST_PREFIX + KEY_SEPARATOR + "stateless" + KEY_SEPARATOR;
 
     /**
-     * 用户缓存键
-     * 格式: dragon-token:user:cache:{userId}
+     * 用户缓存键（支持租户隔离）
+     * 格式: dragon-token:tenant:{tenantId}:user:cache:{userId}
      */
     public static final String USER_CACHE_KEY = USER_PREFIX + KEY_SEPARATOR + "cache" + KEY_SEPARATOR;
 
     /**
-     * Session存储键
-     * 格式: dragon-token:session:{sessionId}
+     * Session存储键（支持租户隔离）
+     * 格式: dragon-token:tenant:{tenantId}:session:{sessionId}
      */
     public static final String SESSION_STORAGE_KEY = SESSION_PREFIX + KEY_SEPARATOR;
 
     /**
-     * 用户权限缓存键
-     * 格式: dragon-token:user:permissions:{userId}
+     * 用户权限缓存键（支持租户隔离）
+     * 格式: dragon-token:tenant:{tenantId}:user:permissions:{userId}
      */
     public static final String USER_PERMISSIONS_KEY = USER_PREFIX + KEY_SEPARATOR + "permissions" + KEY_SEPARATOR;
 
     /**
-     * 用户角色缓存键
-     * 格式: dragon-token:user:roles:{userId}
+     * 用户角色缓存键（支持租户隔离）
+     * 格式: dragon-token:tenant:{tenantId}:user:roles:{userId}
      */
     public static final String USER_ROLES_KEY = USER_PREFIX + KEY_SEPARATOR + "roles" + KEY_SEPARATOR;
 
     /**
-     * 登录失败计数键
-     * 格式: dragon-token:user:login-fail:{userId}
+     * 登录失败计数键（支持租户隔离）
+     * 格式: dragon-token:tenant:{tenantId}:user:login-fail:{userId}
      */
     public static final String LOGIN_FAIL_COUNT_KEY = USER_PREFIX + KEY_SEPARATOR + "login-fail" + KEY_SEPARATOR;
 
@@ -103,47 +108,107 @@ public final class CacheKeyConstants {
     }
 
     /**
-     * 构建用户缓存键
+     * 构建租户隔离的用户缓存键
+     * @param tenantId 租户ID
      * @param userId 用户ID
      * @return 完整的Redis键
      */
-    public static String buildUserCacheKey(String userId) {
+    public static String buildUserCacheKey(String tenantId, String userId) {
+        return TENANT_PREFIX + KEY_SEPARATOR + tenantId + KEY_SEPARATOR + USER_PREFIX + KEY_SEPARATOR + "cache" + KEY_SEPARATOR + userId;
+    }
+
+    /**
+     * 构建租户隔离的Session存储键
+     * @param tenantId 租户ID
+     * @param sessionId Session ID
+     * @return 完整的Redis键
+     */
+    public static String buildSessionStorageKey(String tenantId, String sessionId) {
+        return TENANT_PREFIX + KEY_SEPARATOR + tenantId + KEY_SEPARATOR + SESSION_PREFIX + KEY_SEPARATOR + sessionId;
+    }
+
+    /**
+     * 构建租户隔离的用户权限缓存键
+     * @param tenantId 租户ID
+     * @param userId 用户ID
+     * @return 完整的Redis键
+     */
+    public static String buildUserPermissionsKey(String tenantId, String userId) {
+        return TENANT_PREFIX + KEY_SEPARATOR + tenantId + KEY_SEPARATOR + USER_PREFIX + KEY_SEPARATOR + "permissions" + KEY_SEPARATOR + userId;
+    }
+
+    /**
+     * 构建租户隔离的用户角色缓存键
+     * @param tenantId 租户ID
+     * @param userId 用户ID
+     * @return 完整的Redis键
+     */
+    public static String buildUserRolesKey(String tenantId, String userId) {
+        return TENANT_PREFIX + KEY_SEPARATOR + tenantId + KEY_SEPARATOR + USER_PREFIX + KEY_SEPARATOR + "roles" + KEY_SEPARATOR + userId;
+    }
+
+    /**
+     * 构建租户隔离的登录失败计数键
+     * @param tenantId 租户ID
+     * @param userId 用户ID
+     * @return 完整的Redis键
+     */
+    public static String buildLoginFailCountKey(String tenantId, String userId) {
+        return TENANT_PREFIX + KEY_SEPARATOR + tenantId + KEY_SEPARATOR + USER_PREFIX + KEY_SEPARATOR + "login-fail" + KEY_SEPARATOR + userId;
+    }
+
+    /**
+     * 兼容性方法：构建用户缓存键（不带租户隔离，用于向后兼容）
+     * @param userId 用户ID
+     * @return 完整的Redis键
+     * @deprecated 建议使用带租户ID的方法
+     */
+    @Deprecated
+    public static String buildUserCacheKeyLegacy(String userId) {
         return USER_CACHE_KEY + userId;
     }
 
     /**
-     * 构建Session存储键
+     * 兼容性方法：构建Session存储键（不带租户隔离，用于向后兼容）
      * @param sessionId Session ID
      * @return 完整的Redis键
+     * @deprecated 建议使用带租户ID的方法
      */
-    public static String buildSessionStorageKey(String sessionId) {
+    @Deprecated
+    public static String buildSessionStorageKeyLegacy(String sessionId) {
         return SESSION_STORAGE_KEY + sessionId;
     }
 
     /**
-     * 构建用户权限缓存键
+     * 兼容性方法：构建用户权限缓存键（不带租户隔离，用于向后兼容）
      * @param userId 用户ID
      * @return 完整的Redis键
+     * @deprecated 建议使用带租户ID的方法
      */
-    public static String buildUserPermissionsKey(String userId) {
+    @Deprecated
+    public static String buildUserPermissionsKeyLegacy(String userId) {
         return USER_PERMISSIONS_KEY + userId;
     }
 
     /**
-     * 构建用户角色缓存键
+     * 兼容性方法：构建用户角色缓存键（不带租户隔离，用于向后兼容）
      * @param userId 用户ID
      * @return 完整的Redis键
+     * @deprecated 建议使用带租户ID的方法
      */
-    public static String buildUserRolesKey(String userId) {
+    @Deprecated
+    public static String buildUserRolesKeyLegacy(String userId) {
         return USER_ROLES_KEY + userId;
     }
 
     /**
-     * 构建登录失败计数键
+     * 兼容性方法：构建登录失败计数键（不带租户隔离，用于向后兼容）
      * @param userId 用户ID
      * @return 完整的Redis键
+     * @deprecated 建议使用带租户ID的方法
      */
-    public static String buildLoginFailCountKey(String userId) {
+    @Deprecated
+    public static String buildLoginFailCountKeyLegacy(String userId) {
         return LOGIN_FAIL_COUNT_KEY + userId;
     }
 

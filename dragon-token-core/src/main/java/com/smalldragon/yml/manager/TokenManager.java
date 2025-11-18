@@ -28,6 +28,14 @@ public interface TokenManager {
 
     UserContext getUserInfoById(String userId);
 
+    /**
+     * 支持租户隔离的用户信息获取
+     * @param tenantId 租户ID
+     * @param userId 用户ID
+     * @return 用户上下文
+     */
+    UserContext getUserInfoById(String tenantId, String userId);
+
     UserContext getUserInfoBySessionId(String sessionId);
 
     // 删除 token（登出）
